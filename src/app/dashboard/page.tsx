@@ -1,56 +1,116 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuthContext } from '@/components/auth/AuthProvider';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { FileUpload } from '@/components/ui/file-upload';
+import { formatFileSize, formatDate } from '@/lib/utils';
+
+// Define the file type
+interface FileRecord {
+  id: string;
+  filename: string;
+  file_size: number;
+  created_at: string;
+  content_type: string;
+  owner_id: string;
+  status: string;
+}
 
 export default function DashboardPage() {
   const { user } = useAuthContext();
-  
+  const [files, setFiles] = useState<FileRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchFiles();
+  }, []);
+
+  const fetchFiles = async () => {
+    try {
+      setIsLoading(true);
+      // Fetch files from API
+      const response = await fetch('/api/storage/list');
+      const data = await response.json();
+      
+      if (data.success) {
+        setFiles(data.files || []);
+      }
+    } catch (error) {
+      console.error('Error fetching files:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteFile = async (fileId: string) => {
+    try {
+      const response = await fetch(`/api/storage/delete?fileId=${fileId}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        fetchFiles();
+      }
+    } catch (error) {
+      console.error('Error deleting file:', error);
+    }
+  };
+
+  const refreshFiles = () => {
+    fetchFiles();
+  };
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="container py-6">
       <Card>
         <CardHeader>
-          <CardTitle>Recent Transcriptions</CardTitle>
+          <CardTitle>Your Files</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-500">You haven't created any transcriptions yet.</p>
-          <button className="mt-4 px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700 transition">
-            Upload Audio
-          </button>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Translations</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-gray-500">You haven't created any translations yet.</p>
-          <button className="mt-4 px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700 transition">
-            Translate Content
-          </button>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>Usage Statistics</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm text-gray-500">Minutes Processed</p>
-              <p className="text-2xl font-semibold">0 / 60</p>
-              <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
-                <div className="bg-primary-600 h-2.5 rounded-full" style={{ width: '0%' }}></div>
-              </div>
+          {isLoading ? (
+            <p className="text-center">Loading your content...</p>
+          ) : files.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-lg">You don&apos;t have any files yet.</p>
+              <p className="text-muted-foreground mb-4">
+                Upload an audio file to get started with transcription.
+              </p>
+              <FileUpload
+                accept="audio/*"
+                maxSizeMB={25}
+                onUploadComplete={() => refreshFiles()}
+              />
             </div>
-            <div>
-              <p className="text-sm text-gray-500">Current Plan</p>
-              <p className="font-medium">Free Plan</p>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {files.map((file) => (
+                <div
+                  key={file.id}
+                  className="border rounded-lg p-4 shadow-sm hover:shadow transition-shadow"
+                >
+                  <h3 className="font-medium mb-1">{file.filename}</h3>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    {formatFileSize(file.file_size)} • {formatDate(file.created_at)}
+                  </p>
+                  <div className="flex gap-2 mt-4">
+                    <Button size="sm" variant="outline" asChild>
+                      <Link href={`/dashboard/files/${file.id}`}>View Details</Link>
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDeleteFile(file.id)}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
+          )}
         </CardContent>
       </Card>
     </div>

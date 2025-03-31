@@ -159,4 +159,52 @@ This schema supports the full SpeechFlux application workflow:
 4. Usage is tracked against subscription limits
 5. All operations respect user ownership boundaries
 
-The database schema is designed to be scalable, efficient, and secure while supporting all the application's features. 
+The database schema is designed to be scalable, efficient, and secure while supporting all the application's features.
+
+## Deployment
+
+### CI/CD Pipeline
+
+This project includes a CI/CD pipeline configured with GitHub Actions. The pipeline:
+
+1. Runs linting checks
+2. Executes tests
+3. Builds the application
+4. (Optional) Deploys to Vercel when pushing to the main branch
+
+### Deploying to Vercel
+
+To deploy this application to Vercel:
+
+1. Fork or clone this repository
+2. Create a new project on Vercel and connect it to your repository
+3. Configure the following environment variables in Vercel:
+   - `NEXT_PUBLIC_SUPABASE_URL`: Your Supabase URL
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Your Supabase anonymous key
+   - `CLOUDFLARE_ACCOUNT_ID`: Your Cloudflare account ID
+   - `CLOUDFLARE_ACCESS_KEY_ID`: Your Cloudflare R2 access key
+   - `CLOUDFLARE_SECRET_ACCESS_KEY`: Your Cloudflare R2 secret key
+   - `CLOUDFLARE_R2_BUCKET_NAME`: Your R2 bucket name
+4. Deploy the application
+
+For automated deployments, uncomment the deployment job in `.github/workflows/ci.yml` and add the following secrets to your GitHub repository:
+- `VERCEL_TOKEN`: Your Vercel API token
+- `VERCEL_ORG_ID`: Your Vercel organization ID
+- `VERCEL_PROJECT_ID`: Your Vercel project ID
+
+### Environment Configuration
+
+1. Copy `.env.example` to `.env.local` for local development
+2. Update the values with your own credentials
+
+## Cloudflare R2 Setup
+
+This application uses Cloudflare R2 for storage. To set it up:
+
+1. Create a Cloudflare account if you don't have one
+2. Create an R2 bucket named `speechflux` (or configure a different name in env variables)
+3. Create API tokens with appropriate permissions
+4. Configure CORS settings to allow API access
+5. Add credentials to environment variables
+
+For local development, add these values to your `.env.local` file. 
