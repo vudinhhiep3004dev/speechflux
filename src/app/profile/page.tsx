@@ -1,11 +1,8 @@
+'use client';
+
 import React from 'react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
-export const metadata = {
-  title: 'Profile | SpeechFlux',
-  description: 'Update your profile information',
-};
 
 export default function ProfilePage() {
   return (

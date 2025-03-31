@@ -1,244 +1,219 @@
-# SpeechFlux - Database Schema
+# SpeechFlux Database Schema Documentation
 
-This document outlines the database schema for SpeechFlux using Supabase PostgreSQL.
+## Introduction
 
-## Tables
+This document provides detailed information about the SpeechFlux database schema. The database is built on PostgreSQL via Supabase and is designed to support efficient audio file management, transcription, translation, summarization, and subscription features.
 
-### 1. Users
+## Schema Structure
 
-Extends Supabase Auth users with additional profile information.
+The database schema consists of the following tables:
 
-```sql
-CREATE TABLE profiles (
-  id UUID REFERENCES auth.users(id) PRIMARY KEY,
-  email TEXT NOT NULL,
-  full_name TEXT,
-  avatar_url TEXT,
-  billing_address JSONB,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  subscription_tier TEXT DEFAULT 'free',
-  subscription_status TEXT DEFAULT 'active',
-  current_period_end TIMESTAMP WITH TIME ZONE
-);
-```
+### 1. profiles
 
-### 2. Files
+Extends the built-in `auth.users` table with additional user information.
 
-Stores metadata for uploaded audio files.
+| Column              | Type                      | Description                                |
+|---------------------|---------------------------|--------------------------------------------|
+| id                  | UUID (PK)                 | Foreign key to auth.users                  |
+| first_name          | TEXT                      | User's first name                          |
+| last_name           | TEXT                      | User's last name                           |
+| avatar_url          | TEXT                      | URL to user's profile image                |
+| preferred_language  | TEXT                      | Preferred language for the interface       |
+| created_at          | TIMESTAMP WITH TIME ZONE  | Record creation timestamp                  |
+| updated_at          | TIMESTAMP WITH TIME ZONE  | Record update timestamp                    |
 
-```sql
-CREATE TABLE files (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID REFERENCES profiles(id) NOT NULL,
-  filename TEXT NOT NULL,
-  original_filename TEXT NOT NULL,
-  storage_path TEXT NOT NULL,
-  file_size_bytes BIGINT NOT NULL,
-  mime_type TEXT NOT NULL,
-  duration_seconds FLOAT,
-  status TEXT DEFAULT 'uploaded',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  language_code TEXT,
-  processing_error TEXT,
-  is_deleted BOOLEAN DEFAULT FALSE
-);
-```
+**Security:** Row Level Security (RLS) policies allow users to view and update only their own profile.
 
-### 3. Transcripts
+### 2. files
 
-Stores transcript metadata and links to the actual transcript file.
+Stores metadata for audio files uploaded by users.
 
-```sql
-CREATE TABLE transcripts (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  file_id UUID REFERENCES files(id) NOT NULL,
-  user_id UUID REFERENCES profiles(id) NOT NULL,
-  storage_path TEXT NOT NULL,
-  status TEXT DEFAULT 'processing',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  word_count INTEGER,
-  processing_time_seconds FLOAT,
-  is_edited BOOLEAN DEFAULT FALSE,
-  language_code TEXT,
-  processing_error TEXT,
-  is_deleted BOOLEAN DEFAULT FALSE
-);
-```
+| Column              | Type                      | Description                                |
+|---------------------|---------------------------|--------------------------------------------|
+| id                  | UUID (PK)                 | Unique identifier for the file             |
+| owner_id            | UUID (FK)                 | Foreign key to auth.users                  |
+| filename            | TEXT                      | Original filename                          |
+| file_path           | TEXT                      | Path to the file in storage                |
+| file_size           | INTEGER                   | File size in bytes                         |
+| mime_type           | TEXT                      | File MIME type                             |
+| duration            | INTEGER                   | Duration in seconds                        |
+| status              | TEXT                      | Processing status (pending/processing/completed/error) |
+| storage_bucket      | TEXT                      | Storage bucket name                        |
+| created_at          | TIMESTAMP WITH TIME ZONE  | Record creation timestamp                  |
+| updated_at          | TIMESTAMP WITH TIME ZONE  | Record update timestamp                    |
+| metadata            | JSONB                     | Additional file metadata                   |
 
-### 4. Translations
+**Security:** RLS policies allow users to view, insert, update, and delete only their own files.
 
-Stores translation metadata.
+### 3. transcripts
 
-```sql
-CREATE TABLE translations (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  transcript_id UUID REFERENCES transcripts(id) NOT NULL,
-  user_id UUID REFERENCES profiles(id) NOT NULL,
-  storage_path TEXT NOT NULL,
-  source_language TEXT NOT NULL,
-  target_language TEXT NOT NULL,
-  status TEXT DEFAULT 'processing',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  word_count INTEGER,
-  processing_time_seconds FLOAT,
-  processing_error TEXT,
-  is_deleted BOOLEAN DEFAULT FALSE
-);
-```
+Stores transcriptions of audio files.
 
-### 5. Summaries
+| Column              | Type                      | Description                                |
+|---------------------|---------------------------|--------------------------------------------|
+| id                  | UUID (PK)                 | Unique identifier for the transcript       |
+| file_id             | UUID (FK)                 | Foreign key to files                       |
+| owner_id            | UUID (FK)                 | Foreign key to auth.users                  |
+| content             | TEXT                      | Transcript content                         |
+| language            | TEXT                      | Language of the transcript                 |
+| status              | TEXT                      | Processing status                          |
+| model               | TEXT                      | AI model used for transcription            |
+| confidence          | FLOAT                     | Confidence score from the model            |
+| processing_time     | INTEGER                   | Time taken to transcribe (ms)              |
+| version             | INTEGER                   | Version number for edited transcripts      |
+| is_edited           | BOOLEAN                   | Whether the transcript has been edited     |
+| created_at          | TIMESTAMP WITH TIME ZONE  | Record creation timestamp                  |
+| updated_at          | TIMESTAMP WITH TIME ZONE  | Record update timestamp                    |
+| metadata            | JSONB                     | Additional transcript metadata             |
 
-Stores summary metadata.
+**Security:** RLS policies allow users to view, insert, update, and delete only their own transcripts.
 
-```sql
-CREATE TABLE summaries (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  transcript_id UUID REFERENCES transcripts(id) NOT NULL,
-  user_id UUID REFERENCES profiles(id) NOT NULL,
-  storage_path TEXT NOT NULL,
-  length_type TEXT NOT NULL, -- 'short', 'medium', 'detailed'
-  status TEXT DEFAULT 'processing',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  word_count INTEGER,
-  processing_time_seconds FLOAT,
-  processing_error TEXT,
-  is_deleted BOOLEAN DEFAULT FALSE
-);
-```
+### 4. translations
 
-### 6. Usage
+Stores translations of transcripts.
 
-Tracks user resource usage for billing purposes.
+| Column              | Type                      | Description                                |
+|---------------------|---------------------------|--------------------------------------------|
+| id                  | UUID (PK)                 | Unique identifier for the translation      |
+| transcript_id       | UUID (FK)                 | Foreign key to transcripts                 |
+| owner_id            | UUID (FK)                 | Foreign key to auth.users                  |
+| content             | TEXT                      | Translation content                        |
+| source_language     | TEXT                      | Source language                            |
+| target_language     | TEXT                      | Target language                            |
+| status              | TEXT                      | Processing status                          |
+| model               | TEXT                      | AI model used for translation              |
+| created_at          | TIMESTAMP WITH TIME ZONE  | Record creation timestamp                  |
+| updated_at          | TIMESTAMP WITH TIME ZONE  | Record update timestamp                    |
 
-```sql
-CREATE TABLE usage (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID REFERENCES profiles(id) NOT NULL,
-  month_year TEXT NOT NULL, -- Format: 'YYYY-MM'
-  transcription_seconds_used INTEGER DEFAULT 0,
-  translation_characters_used INTEGER DEFAULT 0,
-  summarization_characters_used INTEGER DEFAULT 0,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-```
+**Security:** RLS policies allow users to view, insert, update, and delete only their own translations.
 
-### 7. Subscriptions
+### 5. summaries
 
-Tracks subscription information from Paddle.
+Stores summaries of transcripts.
 
-```sql
-CREATE TABLE subscriptions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID REFERENCES profiles(id) NOT NULL,
-  paddle_subscription_id TEXT NOT NULL,
-  paddle_customer_id TEXT NOT NULL,
-  paddle_plan_id TEXT NOT NULL,
-  status TEXT NOT NULL,
-  tier TEXT NOT NULL, -- 'free', 'pro', 'business'
-  current_period_start TIMESTAMP WITH TIME ZONE NOT NULL,
-  current_period_end TIMESTAMP WITH TIME ZONE NOT NULL,
-  cancel_at_period_end BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  canceled_at TIMESTAMP WITH TIME ZONE,
-  payment_method JSONB
-);
-```
+| Column              | Type                      | Description                                |
+|---------------------|---------------------------|--------------------------------------------|
+| id                  | UUID (PK)                 | Unique identifier for the summary          |
+| transcript_id       | UUID (FK)                 | Foreign key to transcripts                 |
+| owner_id            | UUID (FK)                 | Foreign key to auth.users                  |
+| content             | TEXT                      | Summary content                            |
+| length              | TEXT                      | Length category (short/medium/long)        |
+| language            | TEXT                      | Language of the summary                    |
+| model               | TEXT                      | AI model used for summarization            |
+| created_at          | TIMESTAMP WITH TIME ZONE  | Record creation timestamp                  |
+| updated_at          | TIMESTAMP WITH TIME ZONE  | Record update timestamp                    |
 
-### 8. TranscriptVersions
+**Security:** RLS policies allow users to view, insert, update, and delete only their own summaries.
 
-Stores version history for edited transcripts.
+### 6. subscriptions
 
-```sql
-CREATE TABLE transcript_versions (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  transcript_id UUID REFERENCES transcripts(id) NOT NULL,
-  user_id UUID REFERENCES profiles(id) NOT NULL,
-  storage_path TEXT NOT NULL,
-  version_number INTEGER NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  comment TEXT
-);
-```
+Manages user subscription plans.
 
-## Row Level Security (RLS) Policies
+| Column                 | Type                      | Description                                |
+|------------------------|---------------------------|--------------------------------------------|
+| id                     | UUID (PK)                 | Unique identifier for the subscription     |
+| user_id                | UUID (FK)                 | Foreign key to auth.users                  |
+| plan                   | TEXT                      | Subscription plan (free/pro/business)      |
+| status                 | TEXT                      | Subscription status                        |
+| current_period_start   | TIMESTAMP WITH TIME ZONE  | Start of the current billing period        |
+| current_period_end     | TIMESTAMP WITH TIME ZONE  | End of the current billing period          |
+| cancel_at_period_end   | BOOLEAN                   | Whether to cancel at the end of period     |
+| paddle_subscription_id | TEXT                      | External subscription ID in Paddle         |
+| paddle_customer_id     | TEXT                      | External customer ID in Paddle             |
+| created_at             | TIMESTAMP WITH TIME ZONE  | Record creation timestamp                  |
+| updated_at             | TIMESTAMP WITH TIME ZONE  | Record update timestamp                    |
+| metadata               | JSONB                     | Additional subscription metadata           |
 
-Example RLS policies for key tables:
+**Security:** RLS policies allow users to view only their own subscription.
 
-### Files Table
+### 7. usage
 
-```sql
--- Users can only view their own files
-CREATE POLICY "Users can view own files" 
-ON files FOR SELECT 
-USING (auth.uid() = user_id);
+Tracks resource usage by users.
 
--- Users can only insert their own files
-CREATE POLICY "Users can insert own files" 
-ON files FOR INSERT 
-WITH CHECK (auth.uid() = user_id);
+| Column                  | Type                      | Description                                |
+|-------------------------|---------------------------|--------------------------------------------|
+| id                      | UUID (PK)                 | Unique identifier for the usage record     |
+| user_id                 | UUID (FK)                 | Foreign key to auth.users                  |
+| transcription_seconds   | INTEGER                   | Total seconds of audio transcribed         |
+| translation_characters  | INTEGER                   | Total characters translated                |
+| summary_count           | INTEGER                   | Number of summaries generated              |
+| period_start            | TIMESTAMP WITH TIME ZONE  | Start of the tracking period               |
+| period_end              | TIMESTAMP WITH TIME ZONE  | End of the tracking period                 |
+| created_at              | TIMESTAMP WITH TIME ZONE  | Record creation timestamp                  |
+| updated_at              | TIMESTAMP WITH TIME ZONE  | Record update timestamp                    |
 
--- Users can only update their own files
-CREATE POLICY "Users can update own files" 
-ON files FOR UPDATE 
-USING (auth.uid() = user_id);
-```
+**Security:** RLS policies allow users to view only their own usage records.
 
-### Similar policies would be created for all tables to ensure data isolation between users.
+### 8. usage_limits
+
+Defines limits for each subscription plan.
+
+| Column                       | Type                      | Description                                |
+|------------------------------|---------------------------|--------------------------------------------|
+| id                           | SERIAL (PK)               | Unique identifier for the plan             |
+| plan                         | TEXT                      | Subscription plan name                     |
+| monthly_transcription_seconds| INTEGER                   | Monthly limit for transcription seconds    |
+| monthly_translation_characters| INTEGER                  | Monthly limit for translation characters   |
+| monthly_summary_count        | INTEGER                   | Monthly limit for summary generation       |
+| max_file_size_mb             | INTEGER                   | Maximum file size (MB) allowed             |
+| created_at                   | TIMESTAMP WITH TIME ZONE  | Record creation timestamp                  |
+| updated_at                   | TIMESTAMP WITH TIME ZONE  | Record update timestamp                    |
+
+## Database Functions and Triggers
+
+### Functions
+
+1. **handle_new_user()**: Triggered when a new user is created in `auth.users`. Creates corresponding records in `profiles`, `subscriptions`, and `usage` tables.
+
+2. **update_modified_column()**: Updates the `updated_at` timestamp whenever a record is modified.
+
+### Triggers
+
+Multiple triggers are set up to maintain data integrity and apply the functions above to relevant tables.
 
 ## Indexes
 
-Important indexes to improve query performance:
+Optimized indexes are created for common query patterns:
 
-```sql
--- Files
-CREATE INDEX idx_files_user_id ON files(user_id);
-CREATE INDEX idx_files_status ON files(status);
+- `idx_files_owner_id`: Improves performance when querying files by owner
+- `idx_files_status`: Optimizes filtering files by status
+- `idx_transcripts_file_id`: Speeds up lookups of transcripts by file
+- `idx_transcripts_owner_id`: Improves performance when querying transcripts by owner
+- `idx_translations_transcript_id`: Speeds up lookups of translations by transcript
+- `idx_translations_owner_id`: Improves performance when querying translations by owner
+- `idx_summaries_transcript_id`: Speeds up lookups of summaries by transcript
+- `idx_summaries_owner_id`: Improves performance when querying summaries by owner
+- `idx_usage_user_id`: Optimizes lookups of usage by user
+- `idx_usage_period`: Improves filtering usage records by time period
 
--- Transcripts
-CREATE INDEX idx_transcripts_file_id ON transcripts(file_id);
-CREATE INDEX idx_transcripts_user_id ON transcripts(user_id);
-CREATE INDEX idx_transcripts_status ON transcripts(status);
+## Row Level Security Policies
 
--- Usage
-CREATE UNIQUE INDEX idx_usage_user_month ON usage(user_id, month_year);
-```
+All tables with user data implement Row Level Security policies to ensure users can only access their own data:
 
-## Database Functions
+- **profiles**: Users can view and update only their own profile
+- **files**: Users can view, insert, update, and delete only their own files
+- **transcripts**: Users can view, insert, update, and delete only their own transcripts
+- **translations**: Users can view, insert, update, and delete only their own translations
+- **summaries**: Users can view, insert, update, and delete only their own summaries
+- **subscriptions**: Users can view only their own subscription
+- **usage**: Users can view only their own usage records
 
-Example function for updating usage:
+## Schema Relationships
 
-```sql
-CREATE OR REPLACE FUNCTION update_transcription_usage()
-RETURNS TRIGGER AS $$
-DECLARE
-  current_month TEXT;
-BEGIN
-  current_month := to_char(NOW(), 'YYYY-MM');
-  
-  INSERT INTO usage (user_id, month_year, transcription_seconds_used)
-  VALUES (NEW.user_id, current_month, COALESCE(NEW.duration_seconds, 0))
-  ON CONFLICT (user_id, month_year) 
-  DO UPDATE SET 
-    transcription_seconds_used = usage.transcription_seconds_used + COALESCE(NEW.duration_seconds, 0),
-    updated_at = NOW();
-    
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+The schema follows these key relationships:
 
-CREATE TRIGGER after_transcript_created
-  AFTER INSERT ON transcripts
-  FOR EACH ROW
-  EXECUTE PROCEDURE update_transcription_usage();
-```
+- Users (auth.users) have one profile (profiles)
+- Users can own many files (files)
+- Files can have one transcript (transcripts)
+- Transcripts can have multiple translations (translations)
+- Transcripts can have multiple summaries (summaries)
+- Users have one subscription (subscriptions)
+- Users have many usage records (usage)
 
-## Migrations
+## Initialization Data
 
-Database changes will be versioned and applied through migration scripts managed in the project repository. 
+The `usage_limits` table is initialized with default values for the three subscription tiers:
+
+- **Free plan**: 1 hour (3,600 seconds) of transcription, 100,000 translation characters, 10 summaries, 25MB max file size
+- **Pro plan**: 5 hours (18,000 seconds) of transcription, 1,000,000 translation characters, 100 summaries, 100MB max file size
+- **Business plan**: 20 hours (72,000 seconds) of transcription, 10,000,000 translation characters, 1,000 summaries, 500MB max file size 

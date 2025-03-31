@@ -1,10 +1,7 @@
+'use client';
+
 import React from 'react';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
-
-export const metadata = {
-  title: 'Dashboard | SpeechFlux',
-  description: 'Manage your audio files, transcriptions, and translations',
-};
 
 export default function DashboardLayout({
   children,

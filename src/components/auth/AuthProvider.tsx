@@ -1,3 +1,5 @@
+'use client';
+
 import React, { createContext, useContext, PropsWithChildren } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { User, Session } from '@supabase/supabase-js';

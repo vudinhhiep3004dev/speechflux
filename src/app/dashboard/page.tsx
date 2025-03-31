@@ -1,8 +1,12 @@
+'use client';
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuthContext } from '@/components/auth/AuthProvider';
 
 export default function DashboardPage() {
+  const { user } = useAuthContext();
+  
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <Card>
