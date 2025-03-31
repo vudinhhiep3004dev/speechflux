@@ -1,0 +1,19 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Your rule content
+
+- Always follow tin implementation_plan.md
+- Keep source code files under 250 lines (split large files and concatenate them)
+- Always output in English
+- Update to the latest versions of technologies used
+- Separate mock data from source code
+- Keep the project code clean, eliminating redundant code
+- Use best solutions and best practices
+- Summarize completed and pending tasks before finishing
+- Generate testing scripts and self-test
+- Update the current status in implementation_plan.md after completing a phase
+- Always adhere to [ai_service_integration.md](mdc:ai_service_integration.md), [database_schema.md](mdc:database_schema.md), [plan.md](mdc:plan.md), [project_structure.md](mdc:project_structure.md), [tech_stack.md](mdc:tech_stack.md)
