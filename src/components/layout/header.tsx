@@ -1,7 +1,14 @@
+'use client';
+
+import React from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { AuthButton } from '@/components/ui/button-client';
+import { useAuthContext } from '@/components/auth/AuthProvider';
 
 export function Header() {
+  const { user, loading } = useAuthContext();
+
   return (
     <header className="border-b border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-950">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
@@ -35,18 +42,33 @@ export function Header() {
                   Blog
                 </Link>
               </li>
+              {user && !loading && (
+                <>
+                  <li>
+                    <Link
+                      href="/dashboard"
+                      className="text-sm font-medium text-gray-600 transition-colors hover:text-primary-600 dark:text-gray-300 dark:hover:text-primary-400"
+                    >
+                      Dashboard
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/profile"
+                      className="text-sm font-medium text-gray-600 transition-colors hover:text-primary-600 dark:text-gray-300 dark:hover:text-primary-400"
+                    >
+                      Profile
+                    </Link>
+                  </li>
+                </>
+              )}
             </ul>
           </nav>
         </div>
         <div className="flex items-center gap-4">
-          <Link href="/login">
-            <Button variant="ghost" size="sm" className="hidden md:inline-flex">
-              Log in
-            </Button>
-          </Link>
-          <Link href="/register">
-            <Button size="sm">Sign up</Button>
-          </Link>
+          <AuthButton type="login" variant="ghost" />
+          <AuthButton type="register" />
+          <AuthButton type="logout" variant="outline" />
           <button className="block md:hidden">
             <svg
               xmlns="http://www.w3.org/2000/svg"
