@@ -8,7 +8,7 @@ import {
   isFormatSupported,
 } from '@/lib/ai';
 
-export const maxDuration = 300; // 5 minutes timeout for transcription
+export const maxDuration = 60; // 1 minute timeout for transcription
 
 /**
  * POST handler for transcribing audio files
