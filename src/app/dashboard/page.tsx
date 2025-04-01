@@ -1,87 +1,110 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuthContext } from '@/components/auth/AuthProvider';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
-import { FileUpload } from '@/components/ui/file-upload';
-import { formatFileSize, formatDate } from '@/lib/utils';
-import { DashboardHeader } from '@/components/dashboard/header';
-import { Shell } from '@/components/shell';
-import { DashboardStats } from '@/components/dashboard/dashboardStats';
-import { FileList } from '@/components/files/fileList';
+import { useEffect, useState } from 'react';
+import { Loader2 } from 'lucide-react';
 
-// Define the file type
-interface FileRecord {
-  id: string;
-  filename: string;
-  file_size: number;
-  created_at: string;
-  content_type: string;
-  owner_id: string;
+interface StatCard {
+  title: string;
+  value: string;
+  description: string;
   status: string;
 }
 
 export default function DashboardPage() {
   const { user } = useAuthContext();
-  const [files, setFiles] = useState<FileRecord[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState<StatCard[]>([]);
+  const [loading, setLoading] = useState(true);
 
+  // Fetch dashboard stats
   useEffect(() => {
-    fetchFiles();
+    // Simulate API call
+    setTimeout(() => {
+      setStats([
+        {
+          title: 'Total Files',
+          value: '12',
+          description: 'Files uploaded',
+          status: 'success',
+        },
+        {
+          title: 'Processing',
+          value: '2',
+          description: 'Files in progress',
+          status: 'warning',
+        },
+        {
+          title: 'Storage Used',
+          value: '124 MB',
+          description: '2 GB available',
+          status: 'info',
+        },
+        {
+          title: 'Transcription Minutes',
+          value: '45',
+          description: '100 minutes available',
+          status: 'info',
+        },
+      ]);
+      setLoading(false);
+    }, 1000);
   }, []);
 
-  const fetchFiles = async () => {
-    try {
-      setIsLoading(true);
-      // Fetch files from API
-      const response = await fetch('/api/storage/list');
-      const data = await response.json();
-      
-      if (data.success) {
-        setFiles(data.files || []);
-      }
-    } catch (error) {
-      console.error('Error fetching files:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDeleteFile = async (fileId: string) => {
-    try {
-      const response = await fetch(`/api/storage/delete?fileId=${fileId}`, {
-        method: 'DELETE'
-      });
-      
-      if (response.ok) {
-        fetchFiles();
-      }
-    } catch (error) {
-      console.error('Error deleting file:', error);
-    }
-  };
-
-  const refreshFiles = () => {
-    fetchFiles();
-  };
+  if (loading) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
-    <Shell className="gap-8">
-      <DashboardHeader 
-        heading="Dashboard" 
-        text="View your usage and files."
-      />
-      
-      <div className="space-y-8">
-        <DashboardStats />
-        
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Recent Files</h2>
-          <FileList limit={5} />
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <p className="text-muted-foreground">
+          Welcome back, {user?.user_metadata?.name || user?.email || 'User'}
+        </p>
       </div>
-    </Shell>
+      
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {stats.map((stat, i) => (
+          <Card key={i}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stat.value}</div>
+              <p className="text-xs text-muted-foreground">{stat.description}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+        <Card className="col-span-4">
+          <CardHeader>
+            <CardTitle>Recent Activity</CardTitle>
+            <CardDescription>Your recent file activity</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {/* Recent activity content here */}
+            <p className="text-sm text-muted-foreground">No recent activity</p>
+          </CardContent>
+        </Card>
+        
+        <Card className="col-span-3">
+          <CardHeader>
+            <CardTitle>Usage</CardTitle>
+            <CardDescription>Your subscription usage</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {/* Usage content here */}
+            <p className="text-sm text-muted-foreground">Free plan</p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 } 

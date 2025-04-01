@@ -9,6 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
 import { getDownloadUrl, deleteFile } from '@/utils/client/upload';
 import { formatDate, formatFileSize } from '@/lib/utils';
+import { TranslationCard } from '@/components/translation/translation-card';
+import { SummaryCard } from '@/components/summarization/summary-card';
 
 interface FileDetails {
   id: string;
@@ -297,44 +299,20 @@ export default function FileDetailPage() {
           </TabsContent>
           
           <TabsContent value="translation">
-            <Card>
-              <CardHeader>
-                <CardTitle>Translation</CardTitle>
-                <CardDescription>
-                  Translate your transcript to different languages
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <p>Translation features coming soon</p>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    This feature will be available in an upcoming release
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            <TranslationCard
+              transcriptId={fileDetails.id}
+              transcriptLanguage={fileDetails.language_code}
+            />
           </TabsContent>
           
           <TabsContent value="summary">
-            <Card>
-              <CardHeader>
-                <CardTitle>Summary</CardTitle>
-                <CardDescription>
-                  AI-generated summary of your content
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <p>Summary features coming soon</p>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    This feature will be available in an upcoming release
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            <SummaryCard transcriptId={fileDetails.id} />
           </TabsContent>
         </Tabs>
       </div>
     </div>
   );
-} 
+}
+
+// Force dynamic rendering for auth context
+export const dynamic = 'force-dynamic'; 

@@ -8,6 +8,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { r2Client, R2_BUCKET_NAME, STORAGE_BUCKETS, ALLOWED_AUDIO_MIME_TYPES, MAX_FILE_SIZE } from './r2';
 import { createClient } from '@/utils/supabase/server';
 import { R2 } from './r2';
+import { addJobToQueue } from '@/lib/redis';
 
 /**
  * Generates a unique key for storing an object in R2
@@ -162,7 +163,7 @@ export async function getPresignedUploadUrl(
 }
 
 /**
- * Creates a file record in the database after successful upload
+ * Creates a file record in the database after successful upload and enqueues processing job
  * @param userId - The ID of the user
  * @param key - The storage key of the file
  * @param filename - The original filename
@@ -198,6 +199,27 @@ export async function createFileRecord(
 
   if (error) {
     throw new Error(`Failed to create file record: ${error.message}`);
+  }
+
+  // Generate a pre-signed URL for the audio file
+  const r2 = await R2.getInstance();
+  const audioUrl = await r2.getPresignedUrl('GET', key, 3600);
+
+  // Enqueue the transcription job
+  if (data) {
+    try {
+      await addJobToQueue('queue:transcription', {
+        fileId: data.id,
+        userId,
+        audioUrl,
+        language: 'auto' // Default to auto-detect
+      });
+      
+      console.log(`Enqueued transcription job for file: ${data.id}`);
+    } catch (queueError) {
+      console.error('Failed to enqueue transcription job:', queueError);
+      // Continue anyway - the file was created
+    }
   }
 
   return data;

@@ -8,6 +8,8 @@ import { FileUploadDragDrop } from '@/components/ui/file-upload-drag-drop';
 import { useToast } from '@/components/ui/use-toast';
 import { useRouter } from 'next/navigation';
 
+export const dynamic = 'force-dynamic';
+
 export default function UploadPage() {
   const [activeTab, setActiveTab] = useState('audio');
   const { toast } = useToast();

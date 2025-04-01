@@ -1,39 +1,47 @@
-import '@/styles/globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import { Header } from '@/components/layout/header';
-import { Footer } from '@/components/layout/footer';
+import '@/styles/globals.css';
 import { AuthProvider } from '@/components/auth/AuthProvider';
-import { Toaster } from "@/components/ui/toaster";
+import { ThemeProvider } from '@/app/providers';
+import { Header } from '@/components/ui/header';
+import { Toaster } from '@/components/ui/toaster';
 
-const inter = Inter({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-inter',
-});
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'SpeechFlux - Audio Transcription and Translation',
-  description: 'Convert audio to text, translate content, and manage your media files with SpeechFlux',
-  keywords: 'transcription, translation, audio to text, speech to text, language translation',
+  title: 'SpeechFlux',
+  description: 'Speech processing platform for all your voice and audio needs.',
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html lang="en" className={inter.variable}>
-      <body className={`${inter.variable} font-sans`}>
-        <AuthProvider>
-          <div className="flex flex-col min-h-screen">
-            <Header />
-            <main className="flex-grow">{children}</main>
-            <Footer />
-          </div>
-          <Toaster />
-        </AuthProvider>
+    <html lang="en" suppressHydrationWarning>
+      <body className={inter.className}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <AuthProvider>
+            <div className="relative flex min-h-screen flex-col">
+              <Header />
+              <main className="flex-1">{children}</main>
+              <footer className="border-t py-6 md:py-0">
+                <div className="container flex flex-col items-center justify-between gap-4 md:h-16 md:flex-row">
+                  <p className="text-sm text-muted-foreground">
+                    &copy; {new Date().getFullYear()} SpeechFlux. All rights reserved.
+                  </p>
+                </div>
+              </footer>
+            </div>
+            <Toaster />
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

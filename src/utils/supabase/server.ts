@@ -10,20 +10,21 @@ export async function createClient() {
     {
       cookies: {
         get(name: string) {
-          return cookieStore.get(name)?.value
+          const cookie = cookieStore.get(name)
+          return cookie?.value
         },
         set(name: string, value: string, options: any) {
           try {
-            cookieStore.set({ name, value, ...options })
+            cookieStore.set(name, value, options)
           } catch (error) {
-            // Handle the case where cookies cannot be set in a server component
+            console.error('Error setting cookie:', error)
           }
         },
         remove(name: string, options: any) {
           try {
-            cookieStore.delete({ name, ...options })
+            cookieStore.delete(name)
           } catch (error) {
-            // Handle the case where cookies cannot be removed in a server component
+            console.error('Error removing cookie:', error)
           }
         },
       },

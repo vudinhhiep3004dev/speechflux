@@ -5,6 +5,9 @@ import { Button } from '@/components/ui/button';
 import { FileUpload } from '@/components/ui/file-upload';
 import Link from 'next/link';
 
+// Force dynamic rendering for auth context
+export const dynamic = 'force-dynamic';
+
 export default function FilesPage() {
   return (
     <Shell>

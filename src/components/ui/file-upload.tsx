@@ -1,3 +1,5 @@
+'use client';
+
 import { useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { StorageBucket } from '@/lib/storage';

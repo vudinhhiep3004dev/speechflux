@@ -1,33 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
+import { cookies } from 'next/headers';
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const fileId = params.id;
+    const { id: fileId } = await params;
     
     if (!fileId) {
       return NextResponse.json(
-        { error: 'Missing file ID' },
+        { success: false, error: 'File ID is required' },
         { status: 400 }
       );
     }
     
+    // Initialize Supabase client
     const supabase = await createClient();
     
-    // Check authentication
-    const { data: { user } } = await supabase.auth.getUser();
+    // Get the current user
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
     
-    if (!user) {
+    if (authError || !user) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { success: false, error: 'Authentication required' },
         { status: 401 }
       );
     }
     
-    // Get the file details
+    // Get the file
     const { data: file, error: fileError } = await supabase
       .from('files')
       .select('*')
@@ -36,35 +35,61 @@ export async function GET(
     
     if (fileError) {
       return NextResponse.json(
-        { error: fileError.message },
-        { status: 500 }
-      );
-    }
-    
-    if (!file) {
-      return NextResponse.json(
-        { error: 'File not found' },
+        { success: false, error: 'File not found' },
         { status: 404 }
       );
     }
     
-    // Verify ownership
+    // Verify that the user owns the file
     if (file.owner_id !== user.id) {
-      // Here you could check for sharing permissions or other access rights
       return NextResponse.json(
-        { error: 'Access denied' },
+        { success: false, error: 'Unauthorized access to file' },
         { status: 403 }
       );
     }
     
+    // Get the transcript if available
+    const { data: transcript, error: transcriptError } = await supabase
+      .from('transcripts')
+      .select('*')
+      .eq('file_id', fileId)
+      .maybeSingle();
+    
+    // Get content from storage if transcript exists and is completed
+    let transcriptContent = null;
+    
+    if (transcript && transcript.status === 'completed' && transcript.storage_path) {
+      try {
+        const { data: content, error: storageError } = await supabase
+          .storage
+          .from('transcripts')
+          .download(transcript.storage_path);
+        
+        if (!storageError && content) {
+          transcriptContent = await content.text();
+        }
+      } catch (error) {
+        console.error('Error fetching transcript content:', error);
+        // Continue without content
+      }
+    }
+    
+    // Return the file and transcript details
     return NextResponse.json({
       success: true,
       file,
+      transcript: transcript ? {
+        ...transcript,
+        content: transcriptContent
+      } : null
     });
   } catch (error) {
     console.error('Error fetching file details:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'An unknown error occurred' },
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to get file details'
+      },
       { status: 500 }
     );
   }
